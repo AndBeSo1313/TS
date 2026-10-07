@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Закулисье | Теплые Страны</title>
+<title>Закулисье | Теплые страны</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script>
@@ -33,7 +33,6 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
 .elegant-shadow { box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
 </style>
 </head>
-<!-- ЖЕСТКАЯ ЗАГЛУШКА ТЕМНОГО ФОНА (Чтобы избежать белого экрана на старых устройствах) -->
 <body class="bg-dark text-lighttext min-h-screen flex flex-col select-none" style="background-color: #110F0E; color: #F2EFE9;">
 
 <div id="customToast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-md border border-gold px-6 py-4 rounded-xl elegant-shadow z-[100] transition-all duration-500 transform -translate-y-32 opacity-0 flex items-center gap-3 w-max max-w-[90vw] pointer-events-none">
@@ -42,16 +41,10 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
 </div>
 
 <div id="authScreen" class="fixed inset-0 bg-dark z-50 flex flex-col justify-center px-6 overflow-hidden" style="background-color: #110F0E;">
-<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-<img src="./logo.png" alt="" class="w-[600px] h-[600px] object-contain opacity-[0.03] blur-[2px] grayscale">
-</div>
-<div class="space-y-6 max-w-sm w-full mx-auto text-center relative z-10 -mt-16">
-<div class="flex justify-center mb-4">
-<img src="./logo.png" alt="Логотип" class="w-48 h-48 object-contain drop-shadow-[0_0_20px_rgba(212,175,55,0.25)]" onerror="this.style.display='none'">
-</div>
+<div class="space-y-6 max-w-sm w-full mx-auto text-center relative z-10 -mt-8">
 <div>
-<h1 class="font-serif text-[28px] sm:text-[32px] text-gold tracking-wide font-bold leading-none">
-Теплые <span class="text-goldmuted font-normal text-2xl mx-0.5">&</span> Страны
+<h1 class="font-serif text-[32px] sm:text-[36px] text-gold tracking-wide font-bold leading-none">
+Теплые Страны
 </h1>
 <p class="text-mutedtext text-lg font-serif italic tracking-widest mt-3 border-b border-bordercolor inline-block pb-0.5 px-2">Закулисье</p>
 </div>
@@ -65,14 +58,10 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
 </div>
 
 <div id="appContainer" class="hidden flex-col min-h-screen w-full pb-20 relative z-10">
-<div class="fixed inset-0 z-0 flex items-center justify-center pointer-events-none">
-<img src="./logo.png" alt="" class="w-[600px] h-[600px] object-contain opacity-[0.04] blur-[3px] grayscale">
-</div>
-
 <header class="px-4 pt-5 pb-3 border-b border-bordercolor flex justify-between items-center bg-dark/80 backdrop-blur-md sticky top-0 z-30">
 <div class="flex items-center gap-3">
 <div class="w-10 h-10 rounded-full border border-gold flex items-center justify-center bg-card elegant-shadow">
-<span class="text-gold font-serif text-xl" id="userInitial">Б</span>
+<span class="text-gold font-serif text-xl" id="userInitial">Т</span>
 </div>
 <div>
 <h2 id="userNameText" class="font-serif font-bold text-lighttext text-lg leading-tight">Загрузка...</h2>
@@ -404,7 +393,9 @@ setTimeout(syncQueue, 3000);
 function loadAppData() {
 if(!currentUser) return;
 document.getElementById('userNameText').innerText = currentUser.name;
-document.getElementById('userInitial').innerText = currentUser.name.charAt(0).toUpperCase();
+
+var userInitialChar = currentUser.name.charAt(0).toUpperCase();
+document.getElementById('userInitial').innerText = userInitialChar;
 
 if(!navigator.onLine) { showToast("Загружена офлайн версия", "💾"); return; }
 
