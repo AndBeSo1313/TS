@@ -270,8 +270,7 @@ startNightWatcher();
 updateQueueIndicator();
 };
 
-window.addEventListener('online', function() { showToast("🌐 Интернет восстановлен", "⚜️"); syncQueue(); });
-window.addEventListener('offline', function() { showToast("⚠️ Нет сети. Включен офлайн-режим", "⚠️"); vibe([50, 50]); });
+window.addEventListener('online', function() { syncQueue(); });
 
 function updateQueueIndicator() {
 var q = JSON.parse(localStorage.getItem('kitchen_sync_queue') || '[]');
@@ -280,36 +279,24 @@ if(q.length > 0) { badge.innerText = q.length; badge.classList.remove('hidden');
 else { badge.classList.add('hidden'); }
 }
 
-function queueData(payload, successMsg) {
-var q = JSON.parse(localStorage.getItem('kitchen_sync_queue') || '[]');
-q.push({ payload: payload, msg: successMsg, id: Date.now() });
-localStorage.setItem('kitchen_sync_queue', JSON.stringify(q));
-
-vibe([50, 50, 50]);
-showToast("⚠️ Нет сети! Сохранено в память телефона", "💾");
-closeActionModal();
-updateQueueIndicator();
-}
-
+// --- ИСТИННЫЙ OFFLINE-FIRST (Защита от закрытия вкладки) ---
 function sendOrQueue(payload, successMsg) {
-var btn = document.getElementById('btnSubmitAction');
-if(btn) { btn.innerText = "Отправка..."; btn.disabled = true; }
+vibe(30);
+showToast(successMsg, "✓");
+closeActionModal();
 
-if (!navigator.onLine) {
-if(btn) { btn.innerText = "Отправить Акт"; btn.disabled = false; }
-queueData(payload, successMsg);
-return;
+// 1. АБСОЛЮТНО ВСЕГДА сначала кладем в локальную очередь
+quietlyQueueData(payload);
+
+// 2. Если есть сеть — сразу пытаемся выгрузить очередь в фоне
+if (navigator.onLine) { syncQueue(); }
 }
 
-fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) })
-.then(function() {
-if(btn) { btn.innerText = "Отправить Акт"; btn.disabled = false; }
-vibe(30); showToast(successMsg, "✓"); closeActionModal();
-})
-.catch(function(err) {
-if(btn) { btn.innerText = "Отправить Акт"; btn.disabled = false; }
-queueData(payload, successMsg);
-});
+function quietlyQueueData(payload) {
+var q = JSON.parse(localStorage.getItem('kitchen_sync_queue') || '[]');
+q.push({ payload: payload, id: Date.now() });
+localStorage.setItem('kitchen_sync_queue', JSON.stringify(q));
+updateQueueIndicator();
 }
 
 function syncQueue() {
@@ -322,12 +309,12 @@ fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(item.
 .then(function() {
 q.shift();
 localStorage.setItem('kitchen_sync_queue', JSON.stringify(q));
-showToast("🔄 Отправлено из памяти: " + item.msg, "✓");
 updateQueueIndicator();
-if(q.length > 0) { setTimeout(syncQueue, 1500); }
+if(q.length > 0) { setTimeout(syncQueue, 1000); }
 })
 .catch(function(err) { console.log("Ожидание стабильной сети..."); });
 }
+// -----------------------------------------------------------
 
 function showToast(message, icon) {
 if(!icon) icon = "⚜️";
@@ -393,11 +380,10 @@ setTimeout(syncQueue, 3000);
 function loadAppData() {
 if(!currentUser) return;
 document.getElementById('userNameText').innerText = currentUser.name;
-
 var userInitialChar = currentUser.name.charAt(0).toUpperCase();
 document.getElementById('userInitial').innerText = userInitialChar;
 
-if(!navigator.onLine) { showToast("Загружена офлайн версия", "💾"); return; }
+if(!navigator.onLine) { return; }
 
 var cacheBuster = new Date().getTime();
 fetch(WEB_APP_URL + "?action=getAppData&userName=" + encodeURIComponent(currentUser.name) + "&t=" + cacheBuster)
