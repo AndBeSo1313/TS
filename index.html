@@ -279,17 +279,15 @@ if(q.length > 0) { badge.innerText = q.length; badge.classList.remove('hidden');
 else { badge.classList.add('hidden'); }
 }
 
-// --- ИСТИННЫЙ OFFLINE-FIRST (Защита от закрытия вкладки) ---
+// ОПТИМИЗАЦИЯ: Истинная мгновенная отправка (Закрывает окно ДО ответа сервера)
 function sendOrQueue(payload, successMsg) {
 vibe(30);
 showToast(successMsg, "✓");
 closeActionModal();
 
-// 1. АБСОЛЮТНО ВСЕГДА сначала кладем в локальную очередь
+// Безусловно кладем в очередь (на случай закрытия вкладки)
 quietlyQueueData(payload);
-
-// 2. Если есть сеть — сразу пытаемся выгрузить очередь в фоне
-if (navigator.onLine) { syncQueue(); }
+if (navigator.onLine) { syncQueue(); } // И тут же выталкиваем, если есть сеть
 }
 
 function quietlyQueueData(payload) {
@@ -310,11 +308,10 @@ fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(item.
 q.shift();
 localStorage.setItem('kitchen_sync_queue', JSON.stringify(q));
 updateQueueIndicator();
-if(q.length > 0) { setTimeout(syncQueue, 1000); }
+if(q.length > 0) { setTimeout(syncQueue, 500); }
 })
 .catch(function(err) { console.log("Ожидание стабильной сети..."); });
 }
-// -----------------------------------------------------------
 
 function showToast(message, icon) {
 if(!icon) icon = "⚜️";
@@ -423,7 +420,6 @@ var employee = document.getElementById('adminWorkerSelect').value;
 var day = document.getElementById('adminDaySelect').value;
 var val = document.getElementById('adminShiftSelect').value;
 if(!employee || !day || !val) return;
-
 var payload = { action: "confirmShift", employeeName: employee, day: day, shiftValue: val };
 sendOrQueue(payload, "Смена утверждена");
 }
@@ -440,6 +436,7 @@ if(tab === 'actions') btnClass += " relative";
 document.getElementById("btn-" + tab).className = btnClass;
 }
 
+// ОПТИМИЗАЦИЯ: Отказ от += innerHTML. Теперь всё рисуется мгновенно одним куском
 function renderHome() {
 document.getElementById('userRoleText').innerText = appData.role;
 document.getElementById('userRateText').innerText = "Ставка: " + appData.rate + " ₽";
@@ -470,7 +467,7 @@ document.getElementById('infoTitle').innerText = "⚜️ " + appData.info[0].tit
 document.getElementById('infoText').innerText = appData.info[0].text;
 }
 
-var grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
+var gridHtml = '';
 for(var d = 1; d <= 31; d++) {
 var shift = null;
 for(var si=0; si<appData.schedule.length; si++) { if(appData.schedule[si].day === d) { shift = appData.schedule[si]; break; } }
@@ -490,19 +487,21 @@ var cellHtml = "<div class='" + baseClasses + " " + stateClasses + " " + eventCl
 "<span class='text-xs font-black mt-0.5'>" + (shift ? shift.shift : '-') + "</span>";
 
 if(ev) { cellHtml += "<div class='absolute -top-1 -right-1 w-2.5 h-2.5 bg-gold rounded-full border border-dark animate-pulse'></div>"; }
-cellHtml += "</div>"; grid.innerHTML += cellHtml;
+cellHtml += "</div>"; gridHtml += cellHtml;
 }
+document.getElementById('calendarGrid').innerHTML = gridHtml;
 
-var fList = document.getElementById('finesList'); fList.innerHTML = '';
-if(appData.fines.length === 0) { fList.innerHTML = "<p class='text-xs text-mutedtext py-2 font-serif italic'>Нарушений и бонусов не обнаружено.</p>"; }
+var fListHtml = '';
+if(appData.fines.length === 0) { fListHtml = "<p class='text-xs text-mutedtext py-2 font-serif italic'>Нарушений и бонусов не обнаружено.</p>"; }
 else {
 appData.fines.forEach(function(f) {
 var isBonus = f.type.toLowerCase() === 'бонус';
 var sign = isBonus ? '+' : '-';
 var color = isBonus ? 'text-[#88B08A]' : 'text-[#D47070]';
-fList.innerHTML += "<div class='bg-card border border-bordercolor p-3 rounded-xl flex justify-between items-center elegant-shadow'><div><p class='text-sm font-medium text-lighttext font-serif'>" + f.reason + "</p><p class='text-[10px] text-mutedtext mt-0.5'>" + f.date + "</p></div><span class='text-sm font-mono font-bold " + color + "'>" + sign + f.volume + " ₽</span></div>";
+fListHtml += "<div class='bg-card border border-bordercolor p-3 rounded-xl flex justify-between items-center elegant-shadow'><div><p class='text-sm font-medium text-lighttext font-serif'>" + f.reason + "</p><p class='text-[10px] text-mutedtext mt-0.5'>" + f.date + "</p></div><span class='text-sm font-mono font-bold " + color + "'>" + sign + f.volume + " ₽</span></div>";
 });
 }
+document.getElementById('finesList').innerHTML = fListHtml;
 }
 
 function openCalendarEvent(day, text) {
@@ -513,31 +512,27 @@ document.getElementById('calendarEventModal').classList.remove('hidden');
 function closeCalendarEvent() { document.getElementById('calendarEventModal').classList.add('hidden'); }
 
 function renderTtkCategories() {
-var bar = document.getElementById('categoriesBar');
 var catArray = [];
 appData.recipes.forEach(function(r) { if(catArray.indexOf(r.category) === -1) catArray.push(r.category); });
 var cats = ['Все'].concat(catArray);
-
 var html = "";
 cats.forEach(function(c) {
 var cls = (selectedCategory === c) ? 'bg-gold text-dark border-gold font-bold' : 'bg-card border-bordercolor text-mutedtext';
 html += "<button onclick=\"selectCategory('" + c + "')\" class=\"px-5 py-1.5 text-xs rounded-full whitespace-nowrap border font-serif tracking-widest uppercase transition " + cls + "\">" + c + "</button>";
 });
-bar.innerHTML = html;
+document.getElementById('categoriesBar').innerHTML = html;
 }
 function selectCategory(cat) { selectedCategory = cat; renderTtkCategories(); filterTtk(); }
 
 function renderTtkList() {
-var container = document.getElementById('ttkList');
 var filtered = [];
 appData.recipes.forEach(function(r) { if(selectedCategory === 'Все' || r.category === selectedCategory) filtered.push(r); });
-
 var html = "";
 filtered.forEach(function(r) {
 var outText = (r.ingredients && r.ingredients.length > 0 && r.ingredients[0].output) ? r.ingredients[0].output : '—';
 html += "<div onclick=\"openTtkModal('" + r.name + "')\" class=\"bg-card border border-bordercolor p-4 rounded-xl flex flex-col justify-between h-28 elegant-shadow cursor-pointer active:scale-95 transition\"><div><span class=\"text-[9px] font-bold text-goldmuted uppercase tracking-widest\">" + r.category + "</span><h4 class=\"font-bold font-serif text-lg text-lighttext mt-1 leading-tight line-clamp-2\">" + r.name + "</h4></div><p class=\"text-[11px] text-mutedtext font-serif italic\">Выход: " + outText + "</p></div>";
 });
-container.innerHTML = html;
+document.getElementById('ttkList').innerHTML = html;
 }
 
 function filterTtk() {
